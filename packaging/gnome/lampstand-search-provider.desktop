@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Lampstand Search Provider
+Exec=/usr/libexec/lampstand-search-provider
+NoDisplay=true
+Categories=Utility;
