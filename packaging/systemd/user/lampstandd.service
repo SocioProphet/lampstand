@@ -1,0 +1,22 @@
+[Unit]
+Description=Lampstand file indexing daemon
+After=graphical-session.target
+
+[Service]
+Type=simple
+
+# In SocioProphet platform builds we standardize on TriTRPC.
+# For dev/test environments, Lampstand will automatically fall back to
+# unixjson when TriTRPC is not available.
+ExecStart=/usr/bin/lampstandd --root %h --rpc auto
+
+Restart=on-failure
+
+# Sandboxing knobs we would tighten in the real distro:
+# NoNewPrivileges=yes
+# PrivateTmp=yes
+# ProtectSystem=strict
+# ProtectHome=read-only
+
+[Install]
+WantedBy=default.target
