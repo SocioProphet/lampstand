@@ -1,5 +1,0 @@
-Imported from archive wrapper: /Users/michaelheller/dev/_incoming_repo_ingest_zipbatch/20260325-final-batch/extracted/18-lampstand-repo-v7-1
-Candidate root: /Users/michaelheller/dev/_incoming_repo_ingest_zipbatch/20260325-final-batch/extracted/18-lampstand-repo-v7-1/lampstand_repo
-Suggested slug: lampstand-02
-Suggested target: SocioProphet/lampstand-02
-Lane: socioprophet-integration
