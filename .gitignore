@@ -7,3 +7,6 @@ __pycache__/
 *.log
 .local/
 .DS_Store
+*.egg-info/
+dist/
+build/

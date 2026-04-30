@@ -8,7 +8,14 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from .messages import HealthResponse, ReindexRequest, SearchRequest, StatsResponse
+from .messages import (
+    HealthResponse,
+    LocalQueryPolicy,
+    LocalQueryRequest,
+    ReindexRequest,
+    SearchRequest,
+    StatsResponse,
+)
 from .service import LampstandService
 
 
@@ -101,6 +108,18 @@ class UnixJsonServer:
         if method == "Reindex":
             r = ReindexRequest(**params)
             return self.service.Reindex(r)
+        if method in ("LocalQuery", "DryRun"):
+            # Reconstruct nested policy if provided.
+            p = dict(params)
+            raw_policy = p.pop("policy", None)
+            policy = LocalQueryPolicy(**raw_policy) if raw_policy else None
+            # Roots and exclude_dirs come over the wire as lists; convert to tuples.
+            if "roots" in p and isinstance(p["roots"], list):
+                p["roots"] = tuple(p["roots"])
+            req = LocalQueryRequest(**p, policy=policy)
+            if method == "DryRun":
+                return self.service.DryRun(req)
+            return self.service.LocalQuery(req)
         raise ValueError(f"unknown method: {method}")
 
     def _send(self, conn: socket.socket, payload: dict[str, Any]) -> None:

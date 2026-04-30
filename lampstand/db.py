@@ -41,7 +41,7 @@ class IndexDB:
 
     def open(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.con = sqlite3.connect(str(self.path), timeout=5.0)
+        self.con = sqlite3.connect(str(self.path), timeout=5.0, check_same_thread=False)
         self.con.row_factory = sqlite3.Row
         cur = self.con.cursor()
         # Pragmas: WAL for crash safety and decent perf.

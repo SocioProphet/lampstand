@@ -13,3 +13,7 @@ license = {text = "MIT"}
 [project.scripts]
 lampstand = "lampstand.cli:main"
 lampstandd = "lampstand.lampstandd:main"
+
+[tool.setuptools.packages.find]
+include = ["lampstand*"]
+exclude = ["specs*", "vendor*", "packaging*", "tests*"]
