@@ -1,0 +1,3 @@
+[console_scripts]
+lampstand = lampstand.cli:main
+lampstandd = lampstand.lampstandd:main
