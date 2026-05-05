@@ -48,6 +48,7 @@ def run_daemon(
     ensure_dirs()
     db_path = db_path or default_db_path()
     sock_path = rpc_socket_path or default_socket_path()
+    root_list = [Path(p).expanduser().resolve() for p in roots]
 
     db = IndexDB(db_path)
     db.open()
@@ -64,7 +65,7 @@ def run_daemon(
         watcher_opts = WatchOptions(scan_options=scan_opts, reconcile_interval_s=reconcile_interval_s)
 
         # Initial scan for baseline correctness.
-        full_scan(indexer, roots, opts=scan_opts)
+        full_scan(indexer, root_list, opts=scan_opts)
 
         # Start RPC server (read-mostly).
         # NOTE: rpc_transport can be 'auto'; the runtime will resolve it.
@@ -76,18 +77,19 @@ def run_daemon(
             db_path=db_path,
             socket_path=sock_path,
             request_reindex=None,  # wired later once we have a journal/work queue
+            get_roots=lambda: list(root_list),
             get_health_details=lambda: {
                 "rpc_transport": resolved_transport['value'],
                 "requested_rpc_transport": rpc_transport,
                 "rpc_socket": str(sock_path),
-                "roots": [str(p) for p in roots],
+                "roots": [str(p) for p in root_list],
             },
         )
 
         # Record the actual transport selected by runtime (important if requested was 'auto').
         resolved_transport['value'] = getattr(rpc, 'transport', rpc_transport)
 
-        tw = TreeWatcher(indexer, roots, opts=watcher_opts)
+        tw = TreeWatcher(indexer, root_list, opts=watcher_opts)
         try:
             tw.run()
         finally:
