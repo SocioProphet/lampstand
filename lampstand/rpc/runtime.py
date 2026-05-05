@@ -24,6 +24,7 @@ def start_rpc_server(
     socket_path: Optional[Path],
     request_reindex: Optional[Callable[[list[Path]], int]] = None,
     get_health_details: Optional[Callable[[], dict]] = None,
+    get_roots: Optional[Callable[[], list[Path]]] = None,
 ) -> RpcHandle:
     """Start the RPC server.
 
@@ -53,6 +54,7 @@ def start_rpc_server(
             db_path=db_path,
             request_reindex=request_reindex,
             get_health_details=get_health_details,
+            get_roots=get_roots,
         )
 
         def _stop() -> None:
@@ -77,6 +79,7 @@ def start_rpc_server(
             db_path=db_path,
             request_reindex=request_reindex,
             get_health_details=get_health_details,
+            get_roots=get_roots,
         )
         server = UnixJsonServer(socket_path=socket_path, service=svc)
         server.start()
