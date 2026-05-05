@@ -129,6 +129,17 @@ def cmd_health(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_roots(args: argparse.Namespace) -> int:
+    transport = _choose_rpc_transport(args.rpc)
+    sock = Path(args.socket) if args.socket else default_socket_path()
+    client = _try_rpc_client(transport, sock)
+    if client is None:
+        print(json.dumps({"roots": [], "adapter_mode": "unavailable", "error": "daemon_unreachable"}, indent=2, sort_keys=True))
+        return 2
+    print(json.dumps(client.root_hints(), indent=2, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="lampstand", description="Local file indexer/search prototype")
     p.add_argument("--db", help="Path to sqlite DB (default: ~/.local/share/lampstand/index.sqlite3)")
@@ -170,6 +181,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_health = sub.add_parser("health", help="Daemon health (RPC)")
     p_health.set_defaults(fn=cmd_health)
+
+    p_roots = sub.add_parser("roots", help="Lampstand-owned local roots (RPC)")
+    p_roots.set_defaults(fn=cmd_roots)
 
     return p
 
