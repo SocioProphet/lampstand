@@ -4,13 +4,12 @@ Covers:
 - DryRunResult shape and validation logic (no I/O)
 - LocalQueryRequest / LocalQueryResponse / PromotionCandidate shapes
 - LampstandService.DryRun() and LampstandService.LocalQuery()
-- unixjson dispatch for LocalQuery and DryRun methods
+- LampstandService.RootHints()
+- unixjson dispatch for LocalQuery, DryRun, and RootHints methods
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 import tempfile
 import threading
 import unittest
@@ -21,13 +20,12 @@ from lampstand.indexer import Indexer
 from lampstand.rpc.messages import (
     DryRunFinding,
     DryRunResult,
-    FileMetadata,
-    LocalHit,
     LocalQueryPolicy,
     LocalQueryRequest,
-    LocalQueryResponse,
     PromotionCandidate,
     QueryStats,
+    RootHint,
+    RootHintsResponse,
 )
 from lampstand.rpc.service import LampstandService, _make_candidate_id, _validate_dry_run
 from lampstand.rpc.unixjson import UnixJsonClient, UnixJsonServer
@@ -88,7 +86,6 @@ class TestDryRunValidation(unittest.TestCase):
         result = _validate_dry_run(self._req(limit=5000))
         warnings = [f for f in result.findings if f.field == "limit" and f.severity == "warning"]
         self.assertTrue(warnings)
-        # Should still be valid (warning != error)
         errors = [f for f in result.findings if f.severity == "error"]
         self.assertFalse(errors)
         self.assertTrue(result.valid)
@@ -112,7 +109,6 @@ class TestDryRunValidation(unittest.TestCase):
     def test_multiple_roots_mixed_validity(self):
         result = _validate_dry_run(self._req(roots=("/good/path", "bad/path")))
         self.assertFalse(result.valid)
-        # Only the bad root should produce an error.
         bad_findings = [f for f in result.findings if "roots[1]" in f.field]
         self.assertTrue(bad_findings)
         good_findings = [f for f in result.findings if "roots[0]" in f.field]
@@ -170,6 +166,17 @@ class TestMessageShapes(unittest.TestCase):
         self.assertTrue(p.allow_content_search)
         self.assertEqual(p.exclude_dirs, ())
 
+    def test_root_hint_fields(self):
+        hint = RootHint(source_root_id="root-1", path="/home/user/dev", root_kind="local_root")
+        self.assertEqual(hint.classification, "local_only")
+        self.assertIn("local-only", hint.handling_tags)
+
+    def test_root_hints_response_fields(self):
+        hint = RootHint(source_root_id="root-1", path="/home/user/dev")
+        resp = RootHintsResponse(roots=(hint,), adapter_mode="rpc")
+        self.assertEqual(resp.adapter_mode, "rpc")
+        self.assertEqual(len(resp.roots), 1)
+
     def test_dry_run_finding_fields(self):
         f = DryRunFinding(field="query", severity="error", message="bad")
         self.assertEqual(f.field, "query")
@@ -223,12 +230,21 @@ class TestLampstandServiceLocalQuery(unittest.TestCase):
         full_scan(indexer, [root])
         db.close()
 
-        self._svc = LampstandService(db_path=db_path)
-        self._root = root
+        self._root = root.resolve()
+        self._svc = LampstandService(db_path=db_path, get_roots=lambda: [self._root])
 
     def tearDown(self):
         self._svc.close()
         self._td.cleanup()
+
+    def test_root_hints_returns_configured_roots(self):
+        resp = self._svc.RootHints()
+        self.assertEqual(resp.adapter_mode, "rpc")
+        self.assertEqual(len(resp.roots), 1)
+        hint = resp.roots[0]
+        self.assertEqual(hint.path, str(self._root))
+        self.assertTrue(hint.source_root_id.startswith("lampstand-root::sha256:"))
+        self.assertEqual(hint.classification, "local_only")
 
     # --- dry-run via service ---
 
@@ -335,7 +351,8 @@ class TestUnixJsonLocalQuery(unittest.TestCase):
         full_scan(indexer, [root])
         db.close()
 
-        self._svc = LampstandService(db_path=db_path)
+        self._root = root.resolve()
+        self._svc = LampstandService(db_path=db_path, get_roots=lambda: [self._root])
         self._socket_path = root / "lamp.sock"
         self._server = UnixJsonServer(
             socket_path=self._socket_path,
@@ -350,6 +367,13 @@ class TestUnixJsonLocalQuery(unittest.TestCase):
         self._server.stop()
         self._svc.close()
         self._td.cleanup()
+
+    def test_root_hints_dispatch(self):
+        result = self._client.call("RootHints", {})
+        self.assertIn("roots", result)
+        self.assertEqual(result["adapter_mode"], "rpc")
+        self.assertEqual(len(result["roots"]), 1)
+        self.assertEqual(result["roots"][0]["path"], str(self._root))
 
     def test_local_query_dispatch(self):
         result = self._client.call("LocalQuery", {"query": "notes"})
