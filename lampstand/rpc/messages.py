@@ -87,11 +87,11 @@ class AdapterRecord:
     truth. They are intended for local search and later promotion review.
     """
 
-    record_id: str
     record_type: str
     title: str
     object_kind: str
     path_ref: str
+    record_id: Optional[str] = None
     source_root_id: Optional[str] = None
     content_hash: Optional[str] = None
     metadata_hash: Optional[str] = None
