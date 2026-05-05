@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from .daemon import run_daemon, run_one_shot_index
 from .db import IndexDB
@@ -30,6 +31,30 @@ def _try_rpc_client(transport: str, socket_path: Path) -> Optional[RpcClient]:
         return RpcClient(transport=transport, socket_path=socket_path)
     except Exception:
         return None
+
+
+def _rpc_client_or_error(args: argparse.Namespace) -> RpcClient | None:
+    transport = _choose_rpc_transport(args.rpc)
+    sock = Path(args.socket) if args.socket else default_socket_path()
+    return _try_rpc_client(transport, sock)
+
+
+def _load_json_arg(path_or_dash: str) -> Any:
+    if path_or_dash == "-":
+        return json.load(sys.stdin)
+    with Path(path_or_dash).expanduser().open("r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _extract_records(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        if isinstance(payload.get("records"), list):
+            return payload["records"]
+        if payload.get("record_type") and payload.get("title"):
+            return [payload]
+    raise SystemExit("adapter record payload must be a record object, {'records': [...]}, or [...] list")
 
 
 def cmd_index(args: argparse.Namespace) -> int:
@@ -119,9 +144,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
 
 
 def cmd_health(args: argparse.Namespace) -> int:
-    transport = _choose_rpc_transport(args.rpc)
-    sock = Path(args.socket) if args.socket else default_socket_path()
-    client = _try_rpc_client(transport, sock)
+    client = _rpc_client_or_error(args)
     if client is None:
         print(json.dumps({"ok": False, "error": "daemon_unreachable"}, indent=2, sort_keys=True))
         return 2
@@ -130,13 +153,39 @@ def cmd_health(args: argparse.Namespace) -> int:
 
 
 def cmd_roots(args: argparse.Namespace) -> int:
-    transport = _choose_rpc_transport(args.rpc)
-    sock = Path(args.socket) if args.socket else default_socket_path()
-    client = _try_rpc_client(transport, sock)
+    client = _rpc_client_or_error(args)
     if client is None:
         print(json.dumps({"roots": [], "adapter_mode": "unavailable", "error": "daemon_unreachable"}, indent=2, sort_keys=True))
         return 2
     print(json.dumps(client.root_hints(), indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_adapter_records_publish(args: argparse.Namespace) -> int:
+    client = _rpc_client_or_error(args)
+    if client is None:
+        print(json.dumps({"ok": False, "error": "daemon_unreachable"}, indent=2, sort_keys=True))
+        return 2
+    records = _extract_records(_load_json_arg(args.payload))
+    print(json.dumps(client.publish_adapter_records(records, dry_run=args.dry_run), indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_adapter_records_query(args: argparse.Namespace) -> int:
+    client = _rpc_client_or_error(args)
+    if client is None:
+        print(json.dumps({"ok": False, "error": "daemon_unreachable"}, indent=2, sort_keys=True))
+        return 2
+    print(json.dumps(client.query_adapter_records(args.query, limit=args.limit), indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_adapter_records_stats(args: argparse.Namespace) -> int:
+    client = _rpc_client_or_error(args)
+    if client is None:
+        print(json.dumps({"ok": False, "error": "daemon_unreachable"}, indent=2, sort_keys=True))
+        return 2
+    print(json.dumps(client.adapter_record_stats(), indent=2, sort_keys=True))
     return 0
 
 
@@ -184,6 +233,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_roots = sub.add_parser("roots", help="Lampstand-owned local roots (RPC)")
     p_roots.set_defaults(fn=cmd_roots)
+
+    p_publish = sub.add_parser("adapter-records-publish", help="Publish governed adapter records from JSON")
+    p_publish.add_argument("payload", help="Path to JSON payload or '-' for stdin")
+    p_publish.add_argument("--dry-run", action="store_true", help="Validate and return record IDs without writing")
+    p_publish.set_defaults(fn=cmd_adapter_records_publish)
+
+    p_ar_query = sub.add_parser("adapter-records-query", help="Query governed adapter records")
+    p_ar_query.add_argument("query", help="FTS query string")
+    p_ar_query.add_argument("--limit", type=int, default=20)
+    p_ar_query.set_defaults(fn=cmd_adapter_records_query)
+
+    p_ar_stats = sub.add_parser("adapter-records-stats", help="Adapter record statistics")
+    p_ar_stats.set_defaults(fn=cmd_adapter_records_stats)
 
     return p
 
