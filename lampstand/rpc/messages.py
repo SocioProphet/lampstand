@@ -46,6 +46,35 @@ class ReindexResponse:
 
 
 # ---------------------------------------------------------------------------
+# Root hints — local-state root discovery for Smart Tree and other adapters
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class RootHint:
+    """A Lampstand-owned local root that may be enriched by downstream tools."""
+
+    source_root_id: str
+    path: str
+    root_kind: str = "local_root"
+    freshness: Optional[dict[str, Any]] = None
+    classification: str = "local_only"
+    handling_tags: tuple[str, ...] = ("local-only",)
+
+
+@dataclass(frozen=True)
+class RootHintsResponse:
+    """Read-only list of Lampstand-owned roots.
+
+    Downstream tools must treat these as hints, not authorization. Policy Fabric
+    still decides whether a specific root may be enriched.
+    """
+
+    roots: tuple[RootHint, ...]
+    adapter_mode: str = "rpc"
+
+
+# ---------------------------------------------------------------------------
 # Local query adapter — Lattice FederatedQueryPlane / lampstand-local-query
 # ---------------------------------------------------------------------------
 
