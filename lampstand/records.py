@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import time
@@ -222,7 +223,7 @@ class AdapterRecordStore:
 
 
 def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
-    required = ("record_id", "record_type", "title", "object_kind", "path_ref")
+    required = ("record_type", "title", "object_kind", "path_ref")
     missing = [field for field in required if not record.get(field)]
     if missing:
         raise ValueError(f"adapter record missing required fields: {', '.join(missing)}")
@@ -236,4 +237,20 @@ def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
     normalized.setdefault("policy_decision", {})
     normalized.setdefault("source", {})
     normalized["handling_tags"] = [str(tag) for tag in handling_tags]
+    if not normalized.get("record_id"):
+        normalized["record_id"] = derive_record_id(normalized)
     return normalized
+
+
+def derive_record_id(record: dict[str, Any]) -> str:
+    parts = {
+        "record_type": record.get("record_type"),
+        "object_kind": record.get("object_kind"),
+        "path_ref": record.get("path_ref"),
+        "title": record.get("title"),
+        "metadata_hash": record.get("metadata_hash"),
+        "content_hash": record.get("content_hash"),
+        "source": record.get("source", {}),
+    }
+    raw = json.dumps(parts, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "lampstand-adapter-record::sha256:" + hashlib.sha256(raw).hexdigest()[:32]
