@@ -229,8 +229,8 @@ def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"adapter record missing required fields: {', '.join(missing)}")
 
     handling_tags = record.get("handling_tags") or []
-    if not isinstance(handling_tags, list):
-        raise ValueError("handling_tags must be a list")
+    if not isinstance(handling_tags, (list, tuple)):
+        raise ValueError("handling_tags must be a list or tuple")
 
     normalized = dict(record)
     normalized.setdefault("classification", "local_only")
