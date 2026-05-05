@@ -51,5 +51,20 @@ class RpcClient:
     def root_hints(self) -> dict[str, Any]:
         return self._call("RootHints", {})
 
+    def publish_adapter_records(self, records: list[dict[str, Any]], *, dry_run: bool = False) -> dict[str, Any]:
+        return self._call(
+            "PublishAdapterRecords",
+            {"records": records, "dry_run": bool(dry_run)},
+        )
+
+    def query_adapter_records(self, query: str, *, limit: int = 20) -> dict[str, Any]:
+        return self._call(
+            "QueryAdapterRecords",
+            {"query": query, "limit": int(limit)},
+        )
+
+    def adapter_record_stats(self) -> dict[str, Any]:
+        return self._call("AdapterRecordStats", {})
+
     def reindex(self, paths: list[str]) -> dict[str, Any]:
         return self._call("Reindex", {"paths": paths})

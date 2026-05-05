@@ -4,10 +4,14 @@ import hashlib
 import time
 from dataclasses import asdict
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from ..db import IndexDB
+from ..records import AdapterRecordStore
 from .messages import (
+    AdapterRecord,
+    AdapterRecordHit,
+    AdapterRecordStatsResponse,
     DryRunFinding,
     DryRunResult,
     FileMetadata,
@@ -17,6 +21,10 @@ from .messages import (
     LocalQueryRequest,
     LocalQueryResponse,
     PromotionCandidate,
+    PublishAdapterRecordsRequest,
+    PublishAdapterRecordsResponse,
+    QueryAdapterRecordsRequest,
+    QueryAdapterRecordsResponse,
     QueryStats,
     ReindexRequest,
     ReindexResponse,
@@ -132,6 +140,10 @@ def _make_root_id(path: Path) -> str:
     return "lampstand-root::sha256:" + hashlib.sha256(str(path).encode()).hexdigest()[:32]
 
 
+def _adapter_record_to_dict(record: AdapterRecord) -> dict[str, Any]:
+    return asdict(record)
+
+
 class LampstandService:
     """Transport-agnostic service implementation.
 
@@ -152,12 +164,15 @@ class LampstandService:
     ) -> None:
         self._db = IndexDB(db_path)
         self._db.open()
+        self._adapter_records = AdapterRecordStore(db_path)
+        self._adapter_records.open()
         self._request_reindex = request_reindex
         self._get_health_details = get_health_details
         self._get_roots = get_roots
 
     def close(self) -> None:
         self._db.close()
+        self._adapter_records.close()
 
     # ---- RPC methods ----
 
@@ -175,7 +190,9 @@ class LampstandService:
         return SearchResponse(hits=hits)
 
     def Stats(self) -> StatsResponse:
-        return StatsResponse(stats=self._db.stats())
+        stats = self._db.stats()
+        stats.update(self._adapter_records.stats())
+        return StatsResponse(stats=stats)
 
     def Health(self) -> HealthResponse:
         details: dict = {"db_path": str(self._db.path)}
@@ -207,6 +224,51 @@ class LampstandService:
                     )
                 )
         return RootHintsResponse(roots=tuple(roots), adapter_mode="rpc")
+
+    def PublishAdapterRecords(self, req: PublishAdapterRecordsRequest) -> PublishAdapterRecordsResponse:
+        """Publish governed adapter records into Lampstand's local record store.
+
+        This is local-only and idempotent. It does not touch the canonical file
+        index, does not scan paths, and makes no network calls.
+        """
+        records = tuple(req.records)
+        record_ids = tuple(str(record.record_id) for record in records)
+        if req.dry_run:
+            return PublishAdapterRecordsResponse(
+                accepted=len(records),
+                published=0,
+                record_ids=record_ids,
+                dry_run=True,
+            )
+        published_ids = self._adapter_records.upsert_records(
+            _adapter_record_to_dict(record) for record in records
+        )
+        return PublishAdapterRecordsResponse(
+            accepted=len(records),
+            published=len(published_ids),
+            record_ids=tuple(published_ids),
+            dry_run=False,
+        )
+
+    def QueryAdapterRecords(self, req: QueryAdapterRecordsRequest) -> QueryAdapterRecordsResponse:
+        rows = self._adapter_records.query_records(req.query, limit=int(req.limit))
+        hits = tuple(
+            AdapterRecordHit(
+                record_id=str(row["record_id"]),
+                record_type=str(row["record_type"]),
+                title=str(row["title"]),
+                object_kind=str(row["object_kind"]),
+                path_ref=str(row["path_ref"]),
+                classification=str(row["classification"]),
+                score=float(row["score"]),
+                snippet=str(row["snippet"]) if row.get("snippet") else None,
+            )
+            for row in rows
+        )
+        return QueryAdapterRecordsResponse(hits=hits)
+
+    def AdapterRecordStats(self) -> AdapterRecordStatsResponse:
+        return AdapterRecordStatsResponse(stats=self._adapter_records.stats())
 
     def Reindex(self, req: ReindexRequest) -> ReindexResponse:
         if not self._request_reindex:

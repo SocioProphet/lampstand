@@ -9,9 +9,12 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from .messages import (
+    AdapterRecord,
     HealthResponse,
     LocalQueryPolicy,
     LocalQueryRequest,
+    PublishAdapterRecordsRequest,
+    QueryAdapterRecordsRequest,
     ReindexRequest,
     SearchRequest,
     StatsResponse,
@@ -23,6 +26,13 @@ def _to_jsonable(obj: Any) -> Any:
     if is_dataclass(obj):
         return asdict(obj)
     return obj
+
+
+def _adapter_record_from_wire(value: dict[str, Any]) -> AdapterRecord:
+    payload = dict(value)
+    if "handling_tags" in payload and isinstance(payload["handling_tags"], list):
+        payload["handling_tags"] = tuple(payload["handling_tags"])
+    return AdapterRecord(**payload)
 
 
 class UnixJsonServer:
@@ -107,6 +117,17 @@ class UnixJsonServer:
             return self.service.Health()
         if method == "RootHints":
             return self.service.RootHints()
+        if method == "PublishAdapterRecords":
+            p = dict(params)
+            raw_records = p.pop("records", [])
+            records = tuple(_adapter_record_from_wire(record) for record in raw_records)
+            return self.service.PublishAdapterRecords(
+                PublishAdapterRecordsRequest(records=records, **p)
+            )
+        if method == "QueryAdapterRecords":
+            return self.service.QueryAdapterRecords(QueryAdapterRecordsRequest(**params))
+        if method == "AdapterRecordStats":
+            return self.service.AdapterRecordStats()
         if method == "Reindex":
             r = ReindexRequest(**params)
             return self.service.Reindex(r)
