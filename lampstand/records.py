@@ -208,7 +208,7 @@ class AdapterRecordStore:
             ORDER BY score
             LIMIT ?;
             """,
-            (query, int(limit)),
+            (quote_fts_query(query), int(limit)),
         )
         return [dict(row) for row in cur.fetchall()]
 
@@ -254,3 +254,15 @@ def derive_record_id(record: dict[str, Any]) -> str:
     }
     raw = json.dumps(parts, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return "lampstand-adapter-record::sha256:" + hashlib.sha256(raw).hexdigest()[:32]
+
+
+def quote_fts_query(query: str) -> str:
+    """Treat caller input as a phrase, not raw FTS5 syntax.
+
+    This prevents punctuation such as hyphens in `smart-tree` from being parsed
+    as FTS operators or column names.
+    """
+    q = str(query or "").strip()
+    if not q:
+        raise ValueError("adapter record query must not be empty")
+    return '"' + q.replace('"', '""') + '"'
