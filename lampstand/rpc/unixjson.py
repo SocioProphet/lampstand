@@ -105,6 +105,8 @@ class UnixJsonServer:
             return self.service.Stats()
         if method == "Health":
             return self.service.Health()
+        if method == "RootHints":
+            return self.service.RootHints()
         if method == "Reindex":
             r = ReindexRequest(**params)
             return self.service.Reindex(r)

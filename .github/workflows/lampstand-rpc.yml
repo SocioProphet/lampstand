@@ -1,0 +1,36 @@
+name: Lampstand RPC Contract
+
+on:
+  pull_request:
+    paths:
+      - "lampstand/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/lampstand-rpc.yml"
+  push:
+    branches:
+      - main
+      - "socioprophet/**"
+    paths:
+      - "lampstand/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/lampstand-rpc.yml"
+
+jobs:
+  rpc-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: python -m pip install -e .
+
+      - name: Run local query and root hints tests
+        run: python -m unittest tests.test_local_query_adapter -v

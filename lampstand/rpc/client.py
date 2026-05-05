@@ -48,5 +48,8 @@ class RpcClient:
     def health(self) -> dict[str, Any]:
         return self._call("Health", {})
 
+    def root_hints(self) -> dict[str, Any]:
+        return self._call("RootHints", {})
+
     def reindex(self, paths: list[str]) -> dict[str, Any]:
         return self._call("Reindex", {"paths": paths})
