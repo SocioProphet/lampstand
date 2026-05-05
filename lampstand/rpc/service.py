@@ -20,6 +20,8 @@ from .messages import (
     QueryStats,
     ReindexRequest,
     ReindexResponse,
+    RootHint,
+    RootHintsResponse,
     SearchRequest,
     SearchResponse,
     SearchHit,
@@ -126,6 +128,10 @@ def _make_candidate_id(path: str, query: str) -> str:
     return "lampstand-local-query::sha256:" + hashlib.sha256(raw).hexdigest()[:32]
 
 
+def _make_root_id(path: Path) -> str:
+    return "lampstand-root::sha256:" + hashlib.sha256(str(path).encode()).hexdigest()[:32]
+
+
 class LampstandService:
     """Transport-agnostic service implementation.
 
@@ -142,11 +148,13 @@ class LampstandService:
         db_path: Path,
         request_reindex: Optional[Callable[[list[Path]], int]] = None,
         get_health_details: Optional[Callable[[], dict]] = None,
+        get_roots: Optional[Callable[[], list[Path]]] = None,
     ) -> None:
         self._db = IndexDB(db_path)
         self._db.open()
         self._request_reindex = request_reindex
         self._get_health_details = get_health_details
+        self._get_roots = get_roots
 
     def close(self) -> None:
         self._db.close()
@@ -177,6 +185,28 @@ class LampstandService:
             except Exception as e:  # pragma: no cover
                 details["health_cb_error"] = repr(e)
         return HealthResponse(ok=True, details=details)
+
+    def RootHints(self) -> RootHintsResponse:
+        """Return Lampstand-owned root hints without granting authorization.
+
+        Downstream enrichers such as Smart Tree must still apply their own
+        Policy Fabric profile before scanning any returned root.
+        """
+        roots = []
+        if self._get_roots:
+            for raw in self._get_roots():
+                path = Path(raw).expanduser().resolve()
+                roots.append(
+                    RootHint(
+                        source_root_id=_make_root_id(path),
+                        path=str(path),
+                        root_kind="local_root",
+                        freshness=None,
+                        classification="local_only",
+                        handling_tags=("local-only", "lampstand-root"),
+                    )
+                )
+        return RootHintsResponse(roots=tuple(roots), adapter_mode="rpc")
 
     def Reindex(self, req: ReindexRequest) -> ReindexResponse:
         if not self._request_reindex:
