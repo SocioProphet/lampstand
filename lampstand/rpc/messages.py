@@ -75,6 +75,77 @@ class RootHintsResponse:
 
 
 # ---------------------------------------------------------------------------
+# Adapter records — governed local search records from controlled tools
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class AdapterRecord:
+    """Governed local-search record produced by a controlled adapter.
+
+    These records are summaries/signals/candidates, not canonical filesystem
+    truth. They are intended for local search and later promotion review.
+    """
+
+    record_id: str
+    record_type: str
+    title: str
+    object_kind: str
+    path_ref: str
+    source_root_id: Optional[str] = None
+    content_hash: Optional[str] = None
+    metadata_hash: Optional[str] = None
+    snippet: Optional[str] = None
+    handling_tags: tuple[str, ...] = ()
+    freshness: Optional[dict[str, Any]] = None
+    policy_decision: dict[str, Any] = field(default_factory=dict)
+    source: dict[str, Any] = field(default_factory=dict)
+    classification: str = "local_only"
+
+
+@dataclass(frozen=True)
+class PublishAdapterRecordsRequest:
+    records: tuple[AdapterRecord, ...]
+    dry_run: bool = False
+
+
+@dataclass(frozen=True)
+class PublishAdapterRecordsResponse:
+    accepted: int
+    published: int
+    record_ids: tuple[str, ...]
+    dry_run: bool = False
+
+
+@dataclass(frozen=True)
+class QueryAdapterRecordsRequest:
+    query: str
+    limit: int = 20
+
+
+@dataclass(frozen=True)
+class AdapterRecordHit:
+    record_id: str
+    record_type: str
+    title: str
+    object_kind: str
+    path_ref: str
+    classification: str
+    score: float
+    snippet: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class QueryAdapterRecordsResponse:
+    hits: tuple[AdapterRecordHit, ...]
+
+
+@dataclass(frozen=True)
+class AdapterRecordStatsResponse:
+    stats: dict[str, Any]
+
+
+# ---------------------------------------------------------------------------
 # Local query adapter — Lattice FederatedQueryPlane / lampstand-local-query
 # ---------------------------------------------------------------------------
 
