@@ -1,0 +1,13 @@
+{
+  "receipt_id": "lampstand-receipt-query-0001",
+  "event_type": "query",
+  "subject": "lampstand.query.v0",
+  "actor": "local-user",
+  "created_at": "2026-05-31T12:01:00Z",
+  "decision": "allow",
+  "policy_decision_ref": "policy-decision-local-0001",
+  "input_hash": "blake3:abcdef0123456789",
+  "output_hash": "blake3:fedcba9876543210",
+  "redactions": [],
+  "notes": "Local query allowed; no mesh publication performed."
+}
