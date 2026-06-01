@@ -13,6 +13,15 @@ This contract set defines the minimum governed boundary for search, index public
 | `schemas/lampstand.mesh-publication-policy.v0.schema.json` | Policy envelope controlling whether and how index metadata can leave the local device. |
 | `schemas/lampstand.audit-receipt.v0.schema.json` | Audit receipt for query, publication, denial, health, and mesh-publication events. |
 
+## Examples
+
+| Example | Schema |
+|---|---|
+| `examples/lampstand.query.v0.example.json` | `schemas/lampstand.query.v0.schema.json` |
+| `examples/lampstand.index-publication.v0.example.json` | `schemas/lampstand.index-publication.v0.schema.json` |
+| `examples/lampstand.mesh-publication-policy.v0.example.json` | `schemas/lampstand.mesh-publication-policy.v0.schema.json` |
+| `examples/lampstand.audit-receipt.v0.example.json` | `schemas/lampstand.audit-receipt.v0.schema.json` |
+
 ## Boundary rules
 
 1. Local indexing remains local-first by default.
@@ -29,4 +38,4 @@ Run:
 make validate
 ```
 
-The validation path includes `tools/check_lampstand_contract_schemas.py`.
+The validation path includes `tools/check_lampstand_contract_schemas.py`, which validates schema shape and the committed examples against the schema subset used by these contracts.
