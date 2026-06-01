@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.socioprophet.local/lampstand/lampstand.query.v0.schema.json",
+  "title": "LampstandQueryV0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["query", "limit"],
+  "properties": {
+    "query": {"type": "string", "minLength": 1},
+    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+    "root_scope": {"type": "string", "minLength": 1},
+    "include_snippets": {"type": "boolean", "default": false},
+    "include_hidden": {"type": "boolean", "default": false},
+    "content_types": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "requester": {"type": "string", "minLength": 1},
+    "policy_context": {"type": "object"}
+  }
+}
