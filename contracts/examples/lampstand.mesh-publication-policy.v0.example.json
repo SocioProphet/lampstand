@@ -1,0 +1,10 @@
+{
+  "policy_id": "lampstand-local-default",
+  "default_publish": false,
+  "allowed_scopes": ["local-only", "device-mesh"],
+  "redaction_required": true,
+  "allowed_fields": ["publication_id", "root", "index_epoch", "record_count", "health.status"],
+  "blocked_patterns": ["*.ssh*", "*secret*", "*password*"],
+  "requires_policy_decision_ref": true,
+  "notes": "Default local-first policy; mesh publication requires explicit policy decision."
+}
