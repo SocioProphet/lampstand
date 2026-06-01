@@ -1,0 +1,12 @@
+{
+  "query": "report OR invoice",
+  "limit": 20,
+  "root_scope": "home",
+  "include_snippets": true,
+  "include_hidden": false,
+  "content_types": ["text/plain", "application/pdf"],
+  "requester": "local-user",
+  "policy_context": {
+    "runtime_authority": "local-only"
+  }
+}
