@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.socioprophet.local/lampstand/lampstand.index-publication.v0.schema.json",
+  "title": "LampstandIndexPublicationV0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["publication_id", "root", "index_epoch", "record_count", "producer", "created_at"],
+  "properties": {
+    "publication_id": {"type": "string", "minLength": 1},
+    "root": {"type": "string", "minLength": 1},
+    "index_epoch": {"type": "integer", "minimum": 0},
+    "record_count": {"type": "integer", "minimum": 0},
+    "producer": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "content_hash": {"type": "string", "minLength": 1},
+    "storage_uri": {"type": "string", "minLength": 1},
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {"type": "string", "enum": ["ok", "degraded", "failed"]},
+        "last_reconcile_at": {"type": "string", "format": "date-time"},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "audit_receipt_ref": {"type": "string", "minLength": 1}
+  }
+}
