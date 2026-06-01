@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.socioprophet.local/lampstand/lampstand.mesh-publication-policy.v0.schema.json",
+  "title": "LampstandMeshPublicationPolicyV0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["policy_id", "default_publish", "allowed_scopes", "redaction_required"],
+  "properties": {
+    "policy_id": {"type": "string", "minLength": 1},
+    "default_publish": {"type": "boolean"},
+    "allowed_scopes": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["local-only", "device-mesh", "workspace-mesh", "organization-mesh"]},
+      "uniqueItems": true
+    },
+    "redaction_required": {"type": "boolean"},
+    "allowed_fields": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "blocked_patterns": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "requires_policy_decision_ref": {"type": "boolean", "default": true},
+    "notes": {"type": "string"}
+  }
+}
