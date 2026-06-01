@@ -1,0 +1,16 @@
+{
+  "publication_id": "lampstand-index-home-0001",
+  "root": "/home/user",
+  "index_epoch": 1,
+  "record_count": 128,
+  "producer": "lampstand-daemon",
+  "created_at": "2026-05-31T12:00:00Z",
+  "content_hash": "blake3:0123456789abcdef",
+  "storage_uri": "sqlite://~/.local/share/lampstand/index.sqlite3",
+  "health": {
+    "status": "ok",
+    "last_reconcile_at": "2026-05-31T12:00:00Z",
+    "warnings": []
+  },
+  "audit_receipt_ref": "lampstand-receipt-index-0001"
+}
