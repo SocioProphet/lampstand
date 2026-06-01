@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.socioprophet.local/lampstand/lampstand.audit-receipt.v0.schema.json",
+  "title": "LampstandAuditReceiptV0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["receipt_id", "event_type", "subject", "actor", "created_at", "decision"],
+  "properties": {
+    "receipt_id": {"type": "string", "minLength": 1},
+    "event_type": {"type": "string", "enum": ["query", "index-publication", "mesh-publication", "policy-denial", "health-check"]},
+    "subject": {"type": "string", "minLength": 1},
+    "actor": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "decision": {"type": "string", "enum": ["allow", "deny", "record-only"]},
+    "policy_decision_ref": {"type": "string", "minLength": 1},
+    "input_hash": {"type": "string", "minLength": 1},
+    "output_hash": {"type": "string", "minLength": 1},
+    "redactions": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "notes": {"type": "string"}
+  }
+}
